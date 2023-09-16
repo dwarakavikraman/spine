@@ -4,8 +4,17 @@
 
 from __future__ import unicode_literals
 
+import frappe
 from frappe.model.document import Document
+from spine.spine_adapter.docevents.eventhandler import handle_event
 
 
 class SpineProducerConfig(Document):
     pass
+
+@frappe.whitelist()
+def first_sync(doctype, filters=None):
+    doc_list = frappe.get_list(doctype, filters=filters, pluck="name")
+    for d in doc_list:
+        doc = frappe.get_doc(doctype, d)
+        handle_event(doc, "first_sync")
