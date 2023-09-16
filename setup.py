@@ -1,24 +1,30 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
 
-try:
-    from pip._internal.req import parse_requirements
-except:
-    from pip.req import parse_requirements
+# try:
+#     from pip._internal.req import parse_requirements
+# except:
+#     from pip.req import parse_requirements
 
-import re, ast
+# import re, ast
+
+with open('requirements.txt') as f:
+	install_requires = f.read().strip().split('\n')
 
 # with open('requirements.txt') as f:
 #     install_requires = f.read().strip().split('\n')
 
-# get version from __version__ variable in withrun_erpnext/__init__.py
-_version_re = re.compile(r'__version__\s+=\s+(.*)')
+# # get version from __version__ variable in withrun_erpnext/__init__.py
+# _version_re = re.compile(r'__version__\s+=\s+(.*)')
 
-with open('spine/__init__.py', 'rb') as f:
-    version = str(ast.literal_eval(_version_re.search(
-        f.read().decode('utf-8')).group(1)))
+# get version from __version__ variable in spine/__init__.py
+from spine import __version__ as version
 
-requirements = parse_requirements("requirements.txt", session="")
+# with open('spine/__init__.py', 'rb') as f:
+#     version = str(ast.literal_eval(_version_re.search(
+#         f.read().decode('utf-8')).group(1)))
+
+# requirements = parse_requirements("requirements.txt", session="")
 
 setup(
     name='spine',
@@ -29,6 +35,6 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     include_package_data=True,
-    install_requires=[str(ir.req) for ir in requirements],
-    dependency_links=[str(ir._link) for ir in requirements if ir._link]
+    install_requires=install_requires,
+    # dependency_links=[str(ir._link) for ir in requirements if ir._link]
 )
