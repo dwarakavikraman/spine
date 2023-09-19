@@ -1,6 +1,8 @@
 import json
+from six import string_types
 
 import frappe
+from frappe.model.document import Document
 from frappe.utils.logger import get_logger
 from spine.spine_adapter.redis_client.redis_client import submit_for_execution
 from spine.spine_adapter.kafka_client.kafka_producer import get_kafka_config
@@ -56,32 +58,17 @@ def poll_and_process_new_messages():
     window_size = config.get("msg_window_size")
     if not window_size:
         window_size = 5
-    # messages = frappe.get_all("Message Log", filters={"status": "Pending", "direction": "Received"},
-    #                           fields=["*"], order_by="received_at", limit_page_length=window_size)
-    messages = frappe.db.sql('''
-        SELECT
-            *
-        from
-            `tabMessage Log`
-        where
-            status = 'Pending'
-            and direction = 'Received'
-        order by
-            received_at
-        limit
-            %(window_size)s
-        for update
-    ''', {
-        'window_size': window_size,
-    }, as_dict=True)
+
+    messages = frappe.get_list("Message Log", filters={"status":"Pending", "direction":"Received"}, order_by="received_at", limit_page_length=window_size, pluck="name")
     if messages:
         logger.debug("Found {} unprocessed messages".format(len(messages)))
         updated_msgs = []
 
         for msg in messages:
+            msg_doc = frappe.get_doc("Message Log", msg)
             # Update status for all messages picked up for processing. This will ensure that later scheduled tasks will
             # not pick up same messages.
-            updated_msgs.append(update_message_status(msg, "Processing"))
+            updated_msgs.append(update_message_status(msg_doc, "Processing"))
         # Commit updates
         frappe.db.commit()
 
@@ -142,6 +129,7 @@ def process_message(msg_value, name=None):
     # provision for retrying.
     # To Enable, capture the retry payload sent from handler function to set status of message and value for next retry.
     retry = []
+    process_success = False
     last_error = None
     if handlers_to_enqueue and len(handlers_to_enqueue) > 0:
         # Process only if there are any handlers available. If not, do not commit.
@@ -157,7 +145,8 @@ def process_message(msg_value, name=None):
                     'message_id': name,
                 })
                 ## Retry array if found in the error payload then consumer would like to override the Spine retry timeline.
-                retry = ((exc.args and exc.args[0]) or {}).get('error', {}).get('retry')
+                exc_args = exc.args and exc.args[0]
+                retry = ((isinstance(exc_args, dict) and exc_args) or {}).get('error', {}).get('retry')
                 frappe.db.rollback()
     else:
         # No handlers defined. Consider this as success scenario.
@@ -213,31 +202,34 @@ def get_consumer_handlers(doctype, topic):
     return handlers
 
 def update_message_status(msg_doc, status, retry=None, error_log=None):
-    msg_doc = frappe.get_doc("Message Log", msg_doc.get("name"))
     if status == 'Error':
         if retry and len(retry) > 0:
             retrying_at = retry[0]
             retries_left = len(retry)
             msg_doc.update({
-                "doctype": "Message Log",
                 "status": status,
                 "retrying_at": retrying_at,
                 "retries_left": retries_left,
                 "retrying_timeline": json.dumps(retry, default=str),
-                "last_error": error_log,
             })
         else:
             status = "Failed"
             msg_doc.update({
-                "doctype": "Message Log",
                 "status": status,
-                "last_error": error_log,
             })
-            send_mail_for_failed_messages(msg_doc)
+            # send_mail_for_failed_messages(msg_doc)
+        error_name = None
+        if isinstance(error_log, string_types):
+            error_name = error_log
+        elif isinstance(error_log, Document):
+            error_name = error_log.name
+        elif isinstance(error_log, dict):
+            error_name = error_log.get("name")
+        msg_doc.update({"last_error":error_name})
     else:
-        msg_doc.update({"doctype": "Message Log", "status": status})
+        msg_doc.update({"status": status})
 
-    return frappe.get_doc(msg_doc).save()
+    return msg_doc.save()
 
 
 def timeline_for_interval(received_at, count, interval):
@@ -250,6 +242,10 @@ def timeline_for_interval(received_at, count, interval):
             received_at = received_at + timedelta(hours=2)
         elif interval and interval == 'Every 6 Hours':
             received_at = received_at + timedelta(hours=6)
+        elif interval and interval == 'Every 1 Min':
+            received_at = received_at + timedelta(minutes=1)
+        elif interval and interval == 'Every 5 Mins':
+            received_at = received_at + timedelta(minutes=5)
         timeline.append(received_at)
         count = count - 1
     return timeline
@@ -262,29 +258,13 @@ def poll_and_publish_new_messages():
     logger = get_module_logger()
     producer = get_producer()
 
-    # Start Add: ajitp - added to make window size cofigurable.
     config = frappe.get_cached_doc("Spine Producer Config", "Spine Producer Config").as_dict()
     # Number of messages to pick up on one call.
     window_size = config.get("msg_window_size")
     if not window_size:
         window_size = 5
-    #window_size = 20
-    # End add
-    # messages = frappe.get_all("Message Log", filters={"status": "Pending", "direction": "Sent"},
-    #                           fields=["*"], order_by="received_at", limit_page_length=window_size)
-    messages = frappe.db.sql('''
-        SELECT
-            *
-        from
-            `tabMessage Log`
-        where
-            status = "Pending"
-            and direction = "Sent"
-        limit %(window_size)s
-        for update
-    ''', {
-        'window_size': window_size,
-    }, as_dict=True)
+
+    messages = frappe.get_list("Message Log", filters={"status":"Pending", "direction":"Sent"}, order_by="received_at", limit_page_length=window_size, pluck="name")
 
     if messages and len(messages) > 0:
         logger.debug("Found {} unprocessed messages".format(len(messages)))
@@ -293,7 +273,8 @@ def poll_and_publish_new_messages():
         for msg in messages:
             # Update status for all messages picked up for processing. This will ensure that later scheduled tasks will
             # not pick up same messages.
-            updated_msgs.append(update_message_status(msg, "Processing"))
+            msg_doc = frappe.get_doc("Message Log", msg)
+            updated_msgs.append(update_message_status(msg_doc, "Processing"))
         # Commit updates
         frappe.db.commit()
 

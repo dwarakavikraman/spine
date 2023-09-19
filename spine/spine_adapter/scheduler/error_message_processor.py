@@ -31,7 +31,7 @@ def poll_and_process_error_messages():
     if not window_size:
         window_size = 5
     messages = frappe.get_all("Message Log", filters={"status": "Error", "direction": "Received"},
-                              fields=["*"], order_by="retrying_at", limit_page_length=window_size)
+                              order_by="retrying_at", limit_page_length=window_size, pluck="name")
 
     if messages and len(messages) > 0:
         ## Filter all messages from the messages list based on next retry timestamp
@@ -41,16 +41,17 @@ def poll_and_process_error_messages():
         updated_msgs = []
 
         for msg in messages:
-            print("name: {0}".format(msg.get("name")))
+            msg_doc = frappe.get_doc("Message Log", msg)
+            print("name: {0}".format(msg))
             print("current date: {0}".format(datetime.now()))
-            print("retrying at: {0}".format(msg.get("retrying_at")))
-            print("time diff: {0}".format(date_diff_in_Seconds(datetime.now(), msg.get('retrying_at'))))
-            if date_diff_in_Seconds(datetime.now(), msg.get('retrying_at')) > 0:
+            print("retrying at: {0}".format(msg_doc.retrying_at))
+            print("time diff: {0}".format(date_diff_in_Seconds(datetime.now(), msg_doc.retrying_at)))
+            if date_diff_in_Seconds(datetime.now(), msg_doc.retrying_at) > 0:
                 # messages.remove(msg)
             # else:
                 # Update status for all messages picked up for processing. This will ensure that later scheduled tasks will
                 # not pick up same messages.
-                updated_msgs.append(update_message_status(msg, "Processing"))
+                updated_msgs.append(update_message_status(msg_doc, "Processing"))
             # Commit updates
             frappe.db.commit()
         for msg in updated_msgs:
@@ -217,7 +218,7 @@ def update_message_status(msg_doc, status, retry=None, retries_left=None):
         else:
             status = 'Failed'
             msg_doc.update({"doctype": "Message Log", "status": status, "retries_left": retries_left})
-            send_mail_for_failed_messages(msg_doc)
+            # send_mail_for_failed_messages(msg_doc)
     else:
         msg_doc.update({"doctype": "Message Log", "status": status})
     updated_msg = frappe.get_doc(msg_doc).save()

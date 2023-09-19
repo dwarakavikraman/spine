@@ -83,14 +83,21 @@ def handler(payload, raise_error = True):
         if raise_error:
             raise
 
-def get_local_doc(docname, doctype):
+def get_local_doc(doctype, docname):
     """Get the local document if created with a different name"""
-    if not doctype or docname:
+    if not doctype or not docname:
          return None
     try:
         return frappe.get_doc(doctype, docname)
     except frappe.DoesNotExistError:
         return None
+    
+def remove_payload_fields(payload):
+    remove_fields = ["modified", "creation", "modified_by", "owner", "idx"]
+    for f in remove_fields:
+        if payload.get(f):
+            del payload[f]
+    return payload
         
 def handle_update(payload):
     """Sync update type update"""
@@ -104,6 +111,7 @@ def handle_update(payload):
     logger.debug(local_doc)
     if local_doc:
         data = frappe._dict(payload.get('Payload'))
+        remove_payload_fields(data)
         local_doc.update(data)
         logger.debug("Saving doc")
         local_doc.save()
@@ -119,7 +127,9 @@ def handle_insert(payload):
     if frappe.db.get_value(doctype, docname):
         raise Exception("Document already exists")
     
-    doc = frappe.get_doc(payload.get("Payload"))
+    data = frappe._dict(payload.get("Payload"))
+    remove_payload_fields(data)
+    doc = frappe.get_doc(data)
     doc.insert(set_name=docname, set_child_names=False)
     return doc
 
