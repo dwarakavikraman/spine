@@ -70,7 +70,6 @@
    "depends_on": "eval:doc.status == 'Error'",
    "fieldname": "retrying_at",
    "fieldtype": "Datetime",
-   "in_list_view": 1,
    "label": "Retrying At",
    "read_only": 1
   },
@@ -115,11 +114,10 @@
   }
  ],
  "links": [],
- "modified": "2023-09-16 18:02:49.048699",
+ "modified": "2023-09-19 20:11:31.235282",
  "modified_by": "Administrator",
  "module": "Spine Adapter",
  "name": "Message Log",
- "naming_rule": "Random",
  "owner": "Administrator",
  "permissions": [
   {
@@ -149,6 +147,5 @@
  ],
  "sort_field": "modified",
  "sort_order": "ASC",
- "states": [],
  "track_changes": 1
 }
