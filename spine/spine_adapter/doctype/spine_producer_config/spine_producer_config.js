@@ -9,7 +9,7 @@ frappe.ui.form.on('Spine Producer Config', {
 
 frappe.ui.form.on('Spine Producer Handler Mapping', {
 
-	first_sync: function(frm, cdt, cdn) {
+	trigger: function(frm, cdt, cdn) {
 		if (frm.is_dirty()){
 			frappe.msgprint("Please save before first sync");
 			return;
@@ -19,8 +19,13 @@ frappe.ui.form.on('Spine Producer Handler Mapping', {
 		if (doctype) {
 			let filters = null;
 			let dialog = new frappe.ui.Dialog({
-				title: __("First Sync"),
+				title: __("Trigger"),
 				fields: [
+					{
+						fieldtype: "Select",
+						fieldname: "event",
+						options: "first_sync\non_update"
+					},
 					{
 						fieldtype: "HTML",
 						fieldname: "filter_area",
@@ -30,14 +35,13 @@ frappe.ui.form.on('Spine Producer Handler Mapping', {
 				primary_action: (values) => {
 					console.log(filters);
 					frappe.call({
-						method: "spine.spine_adapter.doctype.spine_producer_config.spine_producer_config.first_sync",
+						method: "spine.spine_adapter.doctype.spine_producer_config.spine_producer_config.trigger_event",
 						args: {
 							doctype: doctype,
+							event: values.event,
 							filters: filters,
 						},
-						callback: function (r) {
-
-						},
+						callback: function (r) {},
 					});
 					dialog.hide();
 				},

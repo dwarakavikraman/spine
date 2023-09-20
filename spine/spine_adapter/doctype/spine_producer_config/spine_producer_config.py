@@ -13,8 +13,8 @@ class SpineProducerConfig(Document):
     pass
 
 @frappe.whitelist()
-def first_sync(doctype, filters=None):
+def trigger_event(doctype, event, filters=None):
     doc_list = frappe.get_list(doctype, filters=filters, pluck="name")
     for d in doc_list:
         doc = frappe.get_doc(doctype, d)
-        handle_event(doc, "first_sync")
+        handle_event(doc, event)
