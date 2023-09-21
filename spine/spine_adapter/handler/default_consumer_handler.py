@@ -65,8 +65,12 @@ def handler(payload, raise_error = True):
                 return None
         event = payload.get("Header").get("Event")
         logger.debug("Handling Event -> {}".format(event))
-        if event in ["on_update", "on_update_after_submit", "on_submit", "on_cancel"]:
+        if event in ["on_update", "on_update_after_submit"]:
             handle_update(payload)
+        elif event in "on_submit":
+            handle_submit(payload)
+        elif event in "on_cancel":
+            handle_cancel(payload)
         elif event in ["on_insert", "first_sync"]:
             handle_insert(payload)
         elif event == "on_trash":
@@ -132,6 +136,24 @@ def handle_insert(payload):
     doc = frappe.get_doc(data)
     doc.insert(set_name=docname, set_child_names=False)
     return doc
+
+def handle_submit(payload):
+    doctype = payload.get("Header").get("DocType")
+    docname = payload.get("Payload").get("name")
+    if not doctype or not docname:
+        raise IncorrectData(msg="Incorrect Data passed")
+    local_doc = get_local_doc(doctype, docname)
+    if local_doc:
+        local_doc.submit()
+
+def handle_cancel(payload):
+    doctype = payload.get("Header").get("DocType")
+    docname = payload.get("Payload").get("name")
+    if not doctype or not docname:
+        raise IncorrectData(msg="Incorrect Data passed")
+    local_doc = get_local_doc(doctype, docname)
+    if local_doc:
+        local_doc.cancel()
 
 def handle_remove(payload):
     doctype = payload.get("Header").get("DocType")
