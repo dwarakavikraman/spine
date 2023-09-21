@@ -18,3 +18,4 @@ def trigger_event(doctype, event, filters=None):
     for d in doc_list:
         doc = frappe.get_doc(doctype, d)
         handle_event(doc, event)
+    return doc_list
