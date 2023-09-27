@@ -22,11 +22,17 @@ class MessageLog(Document):
 		self.updated_doctype = header.get('DocType')
 
 	def after_insert(self):
-		frappe.utils.background_jobs.enqueue(
-			process,
-			enqueue_after_commit=True,
-			msg_name=self.name,
-		)
+		process_bulk = False
+		if self.direction == "Sent":
+			process_bulk = frappe.get_single("Spine Producer Config").bulk_process
+		elif self.direction == "Received":
+			process_bulk = frappe.get_single("Spine Consumer Config").bulk_process
+		if not process_bulk:
+			frappe.utils.background_jobs.enqueue(
+				process,
+				enqueue_after_commit=True,
+				msg_name=self.name,
+			)
 
 def process(msg_name):
 	status = frappe.db.sql('select status from `tabMessage Log` where name = %s for update', (msg_name,))

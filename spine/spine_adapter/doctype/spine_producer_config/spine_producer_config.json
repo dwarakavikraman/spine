@@ -7,7 +7,8 @@
  "engine": "InnoDB",
  "field_order": [
   "configs",
-  "msg_window_size"
+  "msg_window_size",
+  "bulk_process"
  ],
  "fields": [
   {
@@ -21,12 +22,19 @@
    "fieldname": "msg_window_size",
    "fieldtype": "Int",
    "label": "Message Window Size"
+  },
+  {
+   "default": "0",
+   "description": "If checked, it will process and publish messages in sets of message window size",
+   "fieldname": "bulk_process",
+   "fieldtype": "Check",
+   "label": "Bulk Process"
   }
  ],
  "hide_toolbar": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-09-15 12:37:47.858021",
+ "modified": "2023-09-27 13:15:53.486737",
  "modified_by": "Administrator",
  "module": "Spine Adapter",
  "name": "Spine Producer Config",

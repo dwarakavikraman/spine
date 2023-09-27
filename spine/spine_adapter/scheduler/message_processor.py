@@ -52,8 +52,10 @@ def poll_and_process_new_messages():
     should not assume this order.
     :return: None
     """
-    logger = get_module_logger()
     config = frappe.get_cached_doc("Spine Consumer Config", "Spine Consumer Config").as_dict()
+    if not config.bulk_process:
+        return
+    logger = get_module_logger()
     # Number of messages to pick up on one call.
     window_size = config.get("msg_window_size")
     if not window_size:
@@ -255,10 +257,13 @@ def poll_and_publish_new_messages():
         Method to poll for any new messages being saved to message log with direction = Sent. If any such messages are
         found, they are published onto the corresponding topic configured for that doctype.
     """
+    config = frappe.get_cached_doc("Spine Producer Config", "Spine Producer Config").as_dict()
+    if not config.bulk_process:
+        return
+    
     logger = get_module_logger()
     producer = get_producer()
 
-    config = frappe.get_cached_doc("Spine Producer Config", "Spine Producer Config").as_dict()
     # Number of messages to pick up on one call.
     window_size = config.get("msg_window_size")
     if not window_size:
