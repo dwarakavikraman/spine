@@ -22,14 +22,14 @@ def trigger_event(doctype, event, filters=None):
             queue="long",
             doctype=doctype,
             docnames=doc_list,
-            event=event,
+            doc_event=event,
         )
     else:
         handle_bulk_event_update(doctype, doc_list, event)
     return doc_list
 
-def process_bulk_event_update(doctype, docnames, event):
-    handle_bulk_event_update(doctype, docnames, event)
+def process_bulk_event_update(doctype, docnames, doc_event):
+    handle_bulk_event_update(doctype, docnames, doc_event)
 
 def handle_bulk_event_update(doctype, docnames, event):
     for d in docnames:
