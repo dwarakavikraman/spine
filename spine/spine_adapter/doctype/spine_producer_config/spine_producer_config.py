@@ -6,7 +6,8 @@ from __future__ import unicode_literals
 
 import frappe
 from frappe.model.document import Document
-from spine.spine_adapter.docevents.eventhandler import publish_event
+from frappe.utils.background_jobs import enqueue
+from spine.spine_adapter.docevents.eventhandler import handle_event_wrapped
 
 
 class SpineProducerConfig(Document):
@@ -15,15 +16,22 @@ class SpineProducerConfig(Document):
 @frappe.whitelist()
 def trigger_event(doctype, event, filters=None):
     doc_list = frappe.get_list(doctype, filters=filters, pluck="name")
-    for d in doc_list:
-        doc = frappe.get_doc(doctype, d)
-        if not frappe.conf.developer_mode:
-            frappe.utils.background_jobs.enqueue(
-                publish_event,
-                doc=doc,
-                docevent=event,
-                extra_args={},
-            )
-        else:
-            publish_event(doc, event, {})
+    if not frappe.conf.developer_mode:
+        enqueue(
+            process_bulk_event_update,
+            queue="long",
+            doctype=doctype,
+            docnames=doc_list,
+            event=event,
+        )
+    else:
+        handle_bulk_event_update(doctype, doc_list, event)
     return doc_list
+
+def process_bulk_event_update(doctype, docnames, event):
+    handle_bulk_event_update(doctype, docnames, event)
+
+def handle_bulk_event_update(doctype, docnames, event):
+    for d in docnames:
+        doc = frappe.get_doc(doctype, d)
+        handle_event_wrapped(doc, event)

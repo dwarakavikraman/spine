@@ -108,13 +108,15 @@ doc_events = {
 
 scheduler_events = {
     "cron": {
-        "*/2 * * * *": [
-            # job to look for new messages and process them when received - used for spine consumer side. Runs every 2 mins.
+        "* * * * *": [
+            # job to look for new messages and process them when received - used for spine consumer side. Runs every min.
             "spine.spine_adapter.scheduler.message_processor.poll_and_process_new_messages",
+            # job to look for new messages and publish them to kafka - used on spine producer side. Runs every min.
+            "spine.spine_adapter.scheduler.message_processor.poll_and_publish_new_messages"
+        ],
+        "*/2 * * * *": [
             # job to look for error messages and process them - used for spine consumer side. Runs every 2 min.
             "spine.spine_adapter.scheduler.error_message_processor.poll_and_process_error_messages",
-            # job to look for new messages and publish them to kafka - used on spine producer side. Runs every 2 mins.
-            "spine.spine_adapter.scheduler.message_processor.poll_and_publish_new_messages"
         ]
     }
 }
