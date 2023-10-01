@@ -106,7 +106,7 @@ def remove_payload_fields(payload):
 def handle_update(payload):
     """Sync update type update"""
     logger = get_module_logger()
-    doctype = payload.get("Header").get("DocType")
+    doctype = payload.get("Payload").get("doctype")
     docname = payload.get("Payload").get("name")
     if not doctype or not docname:
         raise IncorrectData(msg="Incorrect Data passed")
@@ -124,7 +124,7 @@ def handle_update(payload):
         raise DocDoesNotExist(doctype, docname)
 
 def handle_insert(payload):
-    doctype = payload.get("Header").get("DocType")
+    doctype = payload.get("Payload").get("doctype")
     docname = payload.get("Payload").get("name")
     if not doctype or not docname:
         raise IncorrectData(msg="Incorrect Data passed")
@@ -138,7 +138,7 @@ def handle_insert(payload):
     return doc
 
 def handle_submit(payload):
-    doctype = payload.get("Header").get("DocType")
+    doctype = payload.get("Payload").get("doctype")
     docname = payload.get("Payload").get("name")
     if not doctype or not docname:
         raise IncorrectData(msg="Incorrect Data passed")
@@ -147,7 +147,7 @@ def handle_submit(payload):
         local_doc.submit()
 
 def handle_cancel(payload):
-    doctype = payload.get("Header").get("DocType")
+    doctype = payload.get("Payload").get("doctype")
     docname = payload.get("Payload").get("name")
     if not doctype or not docname:
         raise IncorrectData(msg="Incorrect Data passed")
@@ -156,7 +156,7 @@ def handle_cancel(payload):
         local_doc.cancel()
 
 def handle_remove(payload):
-    doctype = payload.get("Header").get("DocType")
+    doctype = payload.get("Payload").get("doctype")
     docname = payload.get("Payload").get("name")
     if not doctype or not docname:
         raise IncorrectData(msg="Incorrect Data passed")
@@ -165,7 +165,7 @@ def handle_remove(payload):
         local_doc.remove()
 
 def handle_rename(payload):
-    doctype = payload.get("Header").get("DocType")
+    doctype = payload.get("Payload").get("doctype")
     publish_doc = payload.get("Payload")
     rename_meta = publish_doc.get("rename_meta")
     if rename_meta:
