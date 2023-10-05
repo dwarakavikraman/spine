@@ -14,7 +14,7 @@ class SpineProducerConfig(Document):
     pass
 
 @frappe.whitelist()
-def trigger_event(doctype, event, filters=None):
+def trigger_event(doctype, event, filters=None, enqueue_after_commit=False):
     doc_list = frappe.get_list(doctype, filters=filters, pluck="name")
     if not frappe.conf.developer_mode:
         enqueue(
@@ -23,6 +23,7 @@ def trigger_event(doctype, event, filters=None):
             doctype=doctype,
             docnames=doc_list,
             doc_event=event,
+            enqueue_after_commit=enqueue_after_commit
         )
     else:
         handle_bulk_event_update(doctype, doc_list, event)
