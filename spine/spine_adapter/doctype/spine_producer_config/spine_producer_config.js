@@ -3,7 +3,40 @@
 
 frappe.ui.form.on('Spine Producer Config', {
 	refresh: function(frm) {
+		frm.add_custom_button(__('Delete Message Log'), function() {
+			let filters = null;
+			let dialog = new frappe.ui.Dialog({
+				title: __("Delete Message Log"),
+				fields: [
+					{
+						fieldtype: "HTML",
+						fieldname: "filter_area",
+					},
+				],
+				primary_action_label: __("Delete"),
+				primary_action: (values) => {
+					console.log(filters);
+					frappe.call({
+						method: "spine.spine_adapter.doctype.spine_producer_config.spine_producer_config.clear_message_log",
+						args: {
+							filters: filters,
+						},
+						callback: function (r) {},
+					});
+					dialog.hide();
+				},
+			});
 
+			let filter_group = new frappe.ui.FilterGroup({
+				parent: dialog.get_field("filter_area").$wrapper,
+				doctype: "Message Log",
+				on_change: () => {
+					filters = filter_group.get_filters()
+				},
+			});
+			frappe.model.with_doctype("Message Log", () => {});
+			dialog.show()
+		});
 	},
 });
 

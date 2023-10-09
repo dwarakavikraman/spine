@@ -36,3 +36,31 @@ def handle_bulk_event_update(doctype, docnames, event):
     for d in docnames:
         doc = frappe.get_doc(doctype, d)
         handle_event_wrapped(doc, event)
+
+@frappe.whitelist()
+def clear_message_log(filters=None):
+    if not filters: frappe.throw("Please Set some filters")
+    enqueue(
+        _clear_message_log,
+        queue="long",
+        filters=filters,
+    )
+
+def _clear_message_log(filters):
+    doc_list = frappe.get_list("Message Log", filters=filters,fields=["name", "last_error"])
+    for d in doc_list:
+        frappe.delete_doc(
+            doctype="Message Log",
+            name=d.name,
+            ignore_on_trash=True,
+            delete_permanently=True,
+            ignore_missing=True,
+        )
+        if d.last_error:
+            frappe.delete_doc(
+                doctype="Error Log",
+                name=d.last_error,
+                ignore_on_trash=True,
+                delete_permanently=True,
+                ignore_missing=True,
+            )

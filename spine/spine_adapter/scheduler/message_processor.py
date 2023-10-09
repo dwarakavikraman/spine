@@ -269,7 +269,7 @@ def poll_and_publish_new_messages():
     if not window_size:
         window_size = 5
 
-    messages = frappe.get_list("Message Log", filters={"status":"Pending", "direction":"Sent"}, order_by="received_at", limit_page_length=window_size, pluck="name")
+    messages = frappe.get_list("Message Log", filters={"status":"Pending", "direction":"Sent"}, order_by="creation", limit_page_length=window_size, pluck="name")
 
     if messages and len(messages) > 0:
         logger.debug("Found {} unprocessed messages".format(len(messages)))
