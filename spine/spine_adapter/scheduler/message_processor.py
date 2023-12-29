@@ -67,7 +67,7 @@ def poll_and_process_new_messages():
     if not window_size:
         window_size = 5
 
-    old_processing_messages = frappe.get_list("Message Log", filters={"status":"Processing", "direction":"Received", "status_update_at": ["<", now_datetime() - timedelta(minutes=26)]}, order_by="creation", limit_page_length=window_size, pluck="name")
+    old_processing_messages = frappe.get_list("Message Log", filters={"status":"Processing", "direction":"Received", "status_updated_at": ["<", now_datetime() - timedelta(minutes=26)]}, order_by="creation", limit_page_length=window_size, pluck="name")
     if old_processing_messages and len(old_processing_messages) > 0:
         logger.debug("Found {} old processing messages".format(len(old_processing_messages)))
         for msg in old_processing_messages:
