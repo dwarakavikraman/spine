@@ -7,10 +7,13 @@
  "field_order": [
   "updated_doctype",
   "direction",
+  "start_time",
+  "end_time",
   "column_break_vkwia",
   "event",
   "received_at",
   "status",
+  "running_time",
   "data_section",
   "json_message",
   "error_section",
@@ -111,10 +114,28 @@
   {
    "fieldname": "column_break_jyivu",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "running_time",
+   "fieldtype": "Data",
+   "label": "Running Time (In Seconds)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Datetime",
+   "label": "Start Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Datetime",
+   "label": "End Time",
+   "read_only": 1
   }
  ],
  "links": [],
- "modified": "2023-09-19 20:11:31.235282",
+ "modified": "2023-11-02 12:22:09.465963",
  "modified_by": "Administrator",
  "module": "Spine Adapter",
  "name": "Message Log",

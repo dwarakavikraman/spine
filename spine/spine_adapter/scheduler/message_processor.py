@@ -9,7 +9,6 @@ from spine.spine_adapter.kafka_client.kafka_producer import get_kafka_config
 from frappe.utils import cint
 from confluent_kafka import Producer
 from datetime import timedelta, datetime
-import time
 from spine.spine_adapter.redis_client.redis_client import submit_for_execution
 from spine.spine_adapter.scheduler.error_message_processor import send_mail_for_failed_messages
 
@@ -61,7 +60,7 @@ def poll_and_process_new_messages():
     if not window_size:
         window_size = 5
 
-    messages = frappe.get_list("Message Log", filters={"status":"Pending", "direction":"Received"}, order_by="received_at", limit_page_length=window_size, pluck="name")
+    messages = frappe.get_list("Message Log", filters={"status":"Pending", "direction":"Received"}, order_by="creation", limit_page_length=window_size, pluck="name")
     if messages:
         logger.debug("Found {} unprocessed messages".format(len(messages)))
         updated_msgs = []
@@ -83,6 +82,8 @@ def poll_and_process_new_messages():
         logger.info("SpineConsumer: No messages found for processing.")
 
 def process_message_from_spine(msg):
+    import time
+    start_time = time.time()
     print("Name: {0}".format(msg.get("name")))
     logger = get_module_logger()
     logger.debug("Processing new message log - {} of type {}".format(msg, type(msg)))
@@ -94,6 +95,8 @@ def process_message_from_spine(msg):
         logger.debug(f'Ignoring message log {msg.get("name")} as its status is {status}')
         return
     process_success, retry, last_error = process_message(msg_value, name=msg.get('name'))
+    logger.info("Got result: {}".format(process_success))
+    end_time = time.time()
     if process_success:
         status = "Processed"
     else:
@@ -112,7 +115,12 @@ def process_message_from_spine(msg):
                 )
             else:
                 retry = []
-    update_message_status(msg, status, retry, last_error)
+    try:
+        update_message_status(msg, status, retry, last_error, time_elapsed=(end_time - start_time), start_time=start_time, end_time=end_time)
+    except Exception as e:
+        logger.error("Error while updating message status - {}".format(e))
+        frappe.log_error(frappe.get_traceback(), "Error while updating message status")
+    logger.debug("Message Log - {} status - {}".format(msg, status))
     # Commit DB updates.
     frappe.db.commit()
 
@@ -180,7 +188,7 @@ def filter_handlers_for_event(msg_dict, conf):
 
 def get_consumer_handlers(doctype, topic):
     handlers = []
-    frappe.connect()
+    # frappe.connect()
     try:
         logger.debug("Retrieving configurations")
         configs = frappe.get_cached_doc("Spine Consumer Config", "Spine Consumer Config").get('configs', [])
@@ -203,7 +211,7 @@ def get_consumer_handlers(doctype, topic):
     logger.debug("Found handlers - {} for doctype - {}".format(handlers, doctype))
     return handlers
 
-def update_message_status(msg_doc, status, retry=None, error_log=None):
+def update_message_status(msg_doc, status, retry=None, error_log=None, time_elapsed=None, start_time=None, end_time=None):
     if status == 'Error':
         if retry and len(retry) > 0:
             retrying_at = retry[0]
@@ -230,6 +238,12 @@ def update_message_status(msg_doc, status, retry=None, error_log=None):
         msg_doc.update({"last_error":error_name})
     else:
         msg_doc.update({"status": status})
+    if time_elapsed:
+        msg_doc.update({
+            "start_time": datetime.fromtimestamp(start_time),
+            "end_time": datetime.fromtimestamp(end_time),
+            "running_time": time_elapsed
+        })
 
     return msg_doc.save()
 

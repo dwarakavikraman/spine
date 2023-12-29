@@ -2,6 +2,8 @@ from logging.handlers import RotatingFileHandler
 import frappe
 import logging
 
+from frappe.model.rename_doc import rename_doc
+
 class DocTypeNotAvailable(Exception):
 	def __init__(self, doctype, *args, **kwargs):
 		self.message = "{} Doctype not available".format(doctype)
@@ -102,7 +104,31 @@ def remove_payload_fields(payload):
         if payload.get(f):
             del payload[f]
     return payload
-        
+
+def handle_insert_or_update(payload):
+    """Sync insert or update type update"""
+    logger = get_module_logger()
+    doctype = payload.get("Payload").get("doctype")
+    docname = payload.get("Payload").get("name")
+    if not doctype or not docname:
+        logger.debug("Incorrect Data passed")
+        raise IncorrectData(msg="Incorrect Data passed")
+    local_doc = get_local_doc(doctype, docname)
+    if local_doc:
+        logger.debug("Updating {}".format(docname))
+        data = frappe._dict(payload.get('Payload'))
+        remove_payload_fields(data)
+        local_doc.update(data)
+        logger.debug("Saving doc")
+        local_doc.save()
+        local_doc.db_update_all()
+    else:
+        logger.debug("Creating {}".format(docname))
+        data = frappe._dict(payload.get("Payload"))
+        remove_payload_fields(data)
+        doc = frappe.get_doc(data)
+        doc.insert(set_name=docname, set_child_names=False)
+
 def handle_update(payload):
     """Sync update type update"""
     logger = get_module_logger()
@@ -171,7 +197,8 @@ def handle_rename(payload):
     if rename_meta:
         local_doc = get_local_doc(doctype, rename_meta.get("old_name"))
         if local_doc:
-            local_doc.rename(name=rename_meta.get("new_name"),  merge=rename_meta.get("merge"))
+            rename_doc(doctype=doctype, old=rename_meta.get("old_name"), new=rename_meta.get("new_name"), merge=rename_meta.get("merge"))
+            # local_doc.rename(name=rename_meta.get("new_name"),  merge=rename_meta.get("merge"))
     else:
         raise IncorrectData("Incorrect Data Passed")
 

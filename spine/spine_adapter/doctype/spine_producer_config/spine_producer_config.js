@@ -57,7 +57,7 @@ frappe.ui.form.on('Spine Producer Handler Mapping', {
 					{
 						fieldtype: "Select",
 						fieldname: "event",
-						options: "first_sync\non_update"
+						options: "first_sync\non_update\nrename"
 					},
 					{
 						fieldtype: "HTML",

@@ -80,6 +80,9 @@ def publish_event(doc, docevent, extra_args):
 
 # handler method for all events on all doc types.
 def handle_event_wrapped(doc, event, *args):
+    if event == "on_update" and doc.flags.in_insert:
+        # ignore on_update for insert
+        return
     logger = get_module_logger()
     if not frappe.local.conf.get("kafka"):
         logger.debug("No Kafka configuration found in site config")

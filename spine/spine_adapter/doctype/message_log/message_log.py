@@ -22,6 +22,9 @@ class MessageLog(Document):
 		self.updated_doctype = header.get('DocType')
 
 	def after_insert(self):
+		self.process()
+		
+	def process(self):
 		process_bulk = False
 		if self.direction == "Sent":
 			process_bulk = frappe.get_single("Spine Producer Config").bulk_process
