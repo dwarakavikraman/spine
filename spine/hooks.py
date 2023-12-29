@@ -110,7 +110,7 @@ scheduler_events = {
     "cron": {
         "* * * * *": [
             # job to look for new messages and process them when received - used for spine consumer side. Runs every min.
-            "spine.spine_adapter.scheduler.message_processor.poll_and_process_new_messages",
+            "spine.spine_adapter.scheduler.message_processor.poll_and_process_new_messages_long",
             # job to look for new messages and publish them to kafka - used on spine producer side. Runs every min.
             "spine.spine_adapter.scheduler.message_processor.poll_and_publish_new_messages"
         ],

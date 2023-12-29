@@ -11,6 +11,7 @@ from confluent_kafka import Producer
 from datetime import timedelta, datetime
 from spine.spine_adapter.redis_client.redis_client import submit_for_execution
 from spine.spine_adapter.scheduler.error_message_processor import send_mail_for_failed_messages
+from frappe.utils import now_datetime
 
 module_name = __name__
 logger = None
@@ -43,6 +44,12 @@ def skip_message(msg_value):
     logger.debug("Message Header - {}, skipped - {}".format(msg_dict.get("Header"), result))
     return result
 
+def poll_and_process_new_messages_long():
+    config = frappe.get_cached_doc("Spine Consumer Config", "Spine Consumer Config").as_dict()
+    if not config.bulk_process:
+        return
+    frappe.enqueue(poll_and_process_new_messages, queue='long')
+
 def poll_and_process_new_messages():
     """
     Scheduled method that looks for any pending messages to be processed. Currently only 5 messages are picked up for
@@ -59,6 +66,13 @@ def poll_and_process_new_messages():
     window_size = config.get("msg_window_size")
     if not window_size:
         window_size = 5
+
+    old_processing_messages = frappe.get_list("Message Log", filters={"status":"Processing", "direction":"Received", "status_update_at": ["<", now_datetime() - timedelta(minutes=26)]}, order_by="creation", limit_page_length=window_size, pluck="name")
+    if old_processing_messages and len(old_processing_messages) > 0:
+        logger.debug("Found {} old processing messages".format(len(old_processing_messages)))
+        for msg in old_processing_messages:
+            msg_doc = frappe.get_doc("Message Log", msg)
+            process_message_from_spine(msg)
 
     messages = frappe.get_list("Message Log", filters={"status":"Pending", "direction":"Received"}, order_by="creation", limit_page_length=window_size, pluck="name")
     if messages:
@@ -221,11 +235,13 @@ def update_message_status(msg_doc, status, retry=None, error_log=None, time_elap
                 "retrying_at": retrying_at,
                 "retries_left": retries_left,
                 "retrying_timeline": json.dumps(retry, default=str),
+                "status_updated_at": now_datetime(),
             })
         else:
             status = "Failed"
             msg_doc.update({
                 "status": status,
+                "status_updated_at": now_datetime(),
             })
             # send_mail_for_failed_messages(msg_doc)
         error_name = None
@@ -237,7 +253,7 @@ def update_message_status(msg_doc, status, retry=None, error_log=None, time_elap
             error_name = error_log.get("name")
         msg_doc.update({"last_error":error_name})
     else:
-        msg_doc.update({"status": status})
+        msg_doc.update({"status": status, "status_updated_at": now_datetime()})
     if time_elapsed:
         msg_doc.update({
             "start_time": datetime.fromtimestamp(start_time),
