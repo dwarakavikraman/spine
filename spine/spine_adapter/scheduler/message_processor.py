@@ -72,7 +72,7 @@ def poll_and_process_new_messages():
         logger.debug("Found {} old processing messages".format(len(old_processing_messages)))
         for msg in old_processing_messages:
             msg_doc = frappe.get_doc("Message Log", msg)
-            process_message_from_spine(msg)
+            process_message_from_spine(msg_doc)
 
     messages = frappe.get_list("Message Log", filters={"status":"Pending", "direction":"Received"}, order_by="creation", limit_page_length=window_size, pluck="name")
     if messages:
