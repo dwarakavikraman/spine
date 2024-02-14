@@ -49,18 +49,23 @@ def clear_message_log(filters=None):
 def _clear_message_log(filters):
     doc_list = frappe.get_list("Message Log", filters=filters,fields=["name", "last_error"])
     for d in doc_list:
-        frappe.delete_doc(
-            doctype="Message Log",
-            name=d.name,
-            ignore_on_trash=True,
-            delete_permanently=True,
-            ignore_missing=True,
-        )
-        if d.last_error:
+        try:
             frappe.delete_doc(
-                doctype="Error Log",
-                name=d.last_error,
+                doctype="Message Log",
+                name=d.name,
                 ignore_on_trash=True,
                 delete_permanently=True,
                 ignore_missing=True,
             )
+            if d.last_error:
+                frappe.delete_doc(
+                    doctype="Error Log",
+                    name=d.last_error,
+                    ignore_on_trash=True,
+                    delete_permanently=True,
+                    ignore_missing=True,
+                )
+            frappe.db.commit()
+        except Exception:
+            frappe.db.rollback()
+        
