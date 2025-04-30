@@ -7,7 +7,8 @@ def get_kafka_conf():
         "client.id": "default.consumer",
         "default.topic.config": {
             "acks": "all",
-        }
+        },
+        "topic_suffix" : ""
     }
     kafka_conf.update(frappe.local.conf.get("kafka", {}))
     return kafka_conf

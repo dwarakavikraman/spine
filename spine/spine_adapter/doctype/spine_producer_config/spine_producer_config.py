@@ -8,10 +8,26 @@ import frappe
 from frappe.model.document import Document
 from frappe.utils.background_jobs import enqueue
 from spine.spine_adapter.docevents.eventhandler import handle_event_wrapped
+from spine.utils import get_kafka_conf
 
 
 class SpineProducerConfig(Document):
-    pass
+    
+    def on_change(self):
+        kafka_config = get_kafka_conf()
+        if 'topic_suffix' not in kafka_config or not kafka_config['topic_suffix']:
+            return
+        
+        kakfa_topic_suffix = kafka_config['topic_suffix']
+        if not isinstance(kakfa_topic_suffix, str):
+            return
+        kakfa_topic_suffix = kakfa_topic_suffix.strip()
+        if len(kakfa_topic_suffix) == 0:
+            return
+        for i in self.configs:
+            if not i.get('topic').endswith(f"-{kakfa_topic_suffix}"):
+                i.topic = f"{i.get('topic')}-{kakfa_topic_suffix}"
+
 
 @frappe.whitelist()
 def trigger_event(doctype, event, filters=None, enqueue_after_commit=False):
