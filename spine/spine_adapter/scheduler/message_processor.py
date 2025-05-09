@@ -12,6 +12,7 @@ from datetime import timedelta, datetime
 from spine.spine_adapter.redis_client.redis_client import submit_for_execution
 from spine.spine_adapter.scheduler.error_message_processor import send_mail_for_failed_messages
 from frappe.utils import now_datetime
+from spine.utils import get_topic
 
 module_name = __name__
 logger = None
@@ -207,6 +208,7 @@ def get_consumer_handlers(doctype, topic):
     try:
         logger.debug("Retrieving configurations")
         configs = frappe.get_cached_doc("Spine Consumer Config", "Spine Consumer Config").get('configs', [])
+        spine_site_config = get_kafka_config()
         logger.debug("Retrieved configurations - {}".format(frappe.as_json(configs)))
         for config in configs:
             logger.debug("Comparing spine config {}:{} with doctype {}, topic {}".format(
@@ -215,7 +217,7 @@ def get_consumer_handlers(doctype, topic):
                 doctype,
                 topic,
             ))
-            if config.document_type == doctype and config.event_handler and topic == config.topic:
+            if config.document_type == doctype and config.event_handler and topic == get_topic(config.topic, spine_site_config):
                 logger.debug("Found handlers - {}".format(config.event_handler))
                 # value is expected to be comma separated list of handler functions
                 handlers = [x.strip() for x in config.event_handler.split(',')]
@@ -335,6 +337,8 @@ def get_producer():
 
     if kafka_conf.get("consumer.min.commit.count"):
         kafka_conf.pop("consumer.min.commit.count")
+    if kafka_conf.get("topic_suffix"):
+        kafka_conf.pop("topic_suffix")
 
     # Ideally, this should be created as singleton
     producer = frappe.local.spine_producer = Producer(kafka_conf)

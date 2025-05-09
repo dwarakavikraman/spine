@@ -33,6 +33,8 @@ def publish_doc_event(doc, doctype, target_topic, event, debug_flag=False, retry
 
     if kafka_conf.get("consumer.min.commit.count"):
         kafka_conf.pop("consumer.min.commit.count")
+    if kafka_conf.get("topic_suffix"):
+        kafka_conf.pop("topic_suffix")
 
     # Ideally, this should be created as singleton
     # producer = Producer(kafka_conf)

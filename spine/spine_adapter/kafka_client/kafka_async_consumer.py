@@ -6,6 +6,7 @@ from confluent_kafka.cimpl import KafkaError, KafkaException
 import frappe
 from frappe.utils.logger import get_logger
 from spine.spine_adapter.scheduler.message_processor import process_message, skip_message
+from spine.utils import get_kafka_conf, get_topic
 
 logger = None
 
@@ -33,7 +34,10 @@ class KafkaAsyncSingletonConsumer():
 
         def __init__(self, conf):
             self.config = conf.copy()
-            conf.pop("consumer.min.commit.count")
+            if conf.get("consumer.min.commit.count"):
+                conf.pop("consumer.min.commit.count")
+            if conf.get("topic_suffix"):
+                conf.pop("topic_suffix")
             super(KafkaAsyncSingletonConsumer.__KafkaAsyncSingletonConsumer, self).__init__(conf)
 
         def poll_for_messages(self, queue, format_type, site, quiet=False):
@@ -50,12 +54,13 @@ class KafkaAsyncSingletonConsumer():
             config = frappe.get_cached_doc("Spine Consumer Config", "Spine Consumer Config").as_dict()
             # debug_flag = config.get("message_debug")
             configs = config.get("configs")
+            spine_site_conf = get_kafka_conf()
             for spine_config in configs:
                 if spine_config.topic:
-                    topics.add(spine_config.topic)
+                    topics.add(get_topic(spine_config.topic, spine_site_conf))
             topics = list(topics)
             if len(topics) == 0:
-                topics = ['events.topic']
+                topics = [get_topic('events.topic', spine_site_conf)]
             partitions_to_assign = {}
             partitions = []
             logger.debug("Getting cluster metadata for assignment.")
