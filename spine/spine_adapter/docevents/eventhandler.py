@@ -7,6 +7,7 @@ from frappe.model.document import Document
 from frappe.utils.logger import get_logger
 
 from spine.spine_adapter.kafka_client.kafka_producer import publish_doc_event
+from spine.utils import get_kafka_conf, get_topic
 
 module_name = __name__
 
@@ -109,8 +110,9 @@ def handle_event_wrapped(doc, event, *args):
 
     ## forming a dict with all the params (doc_to_publish, doctype_updated, target_topic, event, retry_count, retry_interval)
     ## This is a way to provide hook to the handler for overwriting the configs
+    spine_site_config = get_kafka_conf()
     for producer_handler in handlers:
-        topic = producer_handler.get('topic', 'events.topic')
+        topic = get_topic(producer_handler.get('topic', 'events.topic'), spine_site_config)
         logger.debug("Target Topic for doctype {} is configured for topic {}".format(doctype_updated, topic))
         try:
             producer_config_dict = {

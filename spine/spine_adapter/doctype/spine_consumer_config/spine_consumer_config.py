@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 from frappe.model.document import Document
 from spine.utils.command_controller import publish_command
+from spine.utils import get_kafka_conf
 
 class SpineConsumerConfig(Document):
     def on_update(self):

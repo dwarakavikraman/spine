@@ -7,7 +7,15 @@ def get_kafka_conf():
         "client.id": "default.consumer",
         "default.topic.config": {
             "acks": "all",
-        }
+        },
+        "topic_suffix" : ""
     }
     kafka_conf.update(frappe.local.conf.get("kafka", {}))
     return kafka_conf
+
+def get_topic(topic : str, conf : dict)-> str:
+    if not 'topic_suffix' or not conf['topic_suffix']:
+        return topic
+    if topic.endswith(f"-{conf['topic_suffix']}"):
+        return topic
+    return f"{topic}-{conf['topic_suffix']}"

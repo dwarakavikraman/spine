@@ -8,10 +8,12 @@ import frappe
 from frappe.model.document import Document
 from frappe.utils.background_jobs import enqueue
 from spine.spine_adapter.docevents.eventhandler import handle_event_wrapped
+from spine.utils import get_kafka_conf
 
 
 class SpineProducerConfig(Document):
     pass
+
 
 @frappe.whitelist()
 def trigger_event(doctype, event, filters=None, enqueue_after_commit=False):

@@ -1,7 +1,7 @@
 import asyncio
 import frappe
 from aiokafka import AIOKafkaConsumer
-from spine.utils import get_kafka_conf
+from spine.utils import get_kafka_conf, get_topic
 from spine.utils.command_controller import start_command_handler
 
 def start_dispatchers(site, queue):
@@ -12,7 +12,8 @@ def start_dispatchers(site, queue):
 def fetch_meta_and_run(queue):
     loop = asyncio.get_event_loop()
     consumer_config = frappe.get_cached_doc('Spine Consumer Config', 'Spine Consumer Config')
-    topics = [config.topic for config in consumer_config.configs]
+    conf = get_kafka_conf()
+    topics = [get_topic(config.topic, conf) for config in consumer_config.configs]
     loop.run_until_complete(consume(topics, queue))
 
 async def consume(topics, queue):
