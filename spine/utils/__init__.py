@@ -14,7 +14,7 @@ def get_kafka_conf():
     return kafka_conf
 
 def get_topic(topic : str, conf : dict)-> str:
-    if not 'topic_suffix' or not conf['topic_suffix']:
+    if 'topic_suffix' not in conf or not conf['topic_suffix']:
         return topic
     if topic.endswith(f"-{conf['topic_suffix']}"):
         return topic
