@@ -7,6 +7,8 @@ import frappe
 import json
 from frappe.model.document import Document
 from spine.spine_adapter.scheduler.message_processor import publish_message_to_spine, process_message_from_spine
+from frappe.query_builder import Interval
+from frappe.query_builder.functions import Now
 
 class MessageLog(Document):
 	def before_insert(self):
@@ -36,6 +38,11 @@ class MessageLog(Document):
 				enqueue_after_commit=True,
 				msg_name=self.name,
 			)
+
+	@staticmethod
+	def clear_old_logs(days=60):
+		table = frappe.qb.DocType("Message Log")
+		frappe.db.delete(table, filters=(table.modified < (Now() - Interval(days=days))))
 
 def process(msg_name):
 	status = frappe.db.sql('select status from `tabMessage Log` where name = %s for update', (msg_name,))

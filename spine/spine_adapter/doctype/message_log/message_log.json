@@ -140,8 +140,9 @@
    "label": "Status Updated At"
   }
  ],
+ "grid_page_length": 50,
  "links": [],
- "modified": "2023-12-29 23:41:01.187232",
+ "modified": "2025-07-26 15:07:01.822863",
  "modified_by": "Administrator",
  "module": "Spine Adapter",
  "name": "Message Log",
@@ -172,7 +173,9 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "ASC",
+ "states": [],
  "track_changes": 1
 }
