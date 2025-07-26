@@ -40,7 +40,7 @@ class MessageLog(Document):
 			)
 
 	@staticmethod
-	def clear_old_logs(days=30):
+	def clear_old_logs(days=60):
 		table = frappe.qb.DocType("Message Log")
 		frappe.db.delete(table, filters=(table.modified < (Now() - Interval(days=days))))
 
