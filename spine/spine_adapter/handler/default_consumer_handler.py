@@ -190,14 +190,14 @@ def handle_remove(payload):
     if local_doc:
         local_doc.remove()
 
-def handle_rename(payload):
+def handle_rename(payload, rebuild_search = True):
     doctype = payload.get("Payload").get("doctype")
     publish_doc = payload.get("Payload")
     rename_meta = publish_doc.get("rename_meta")
     if rename_meta:
         local_doc = get_local_doc(doctype, rename_meta.get("old_name"))
         if local_doc:
-            rename_doc(doctype=doctype, old=rename_meta.get("old_name"), new=rename_meta.get("new_name"), merge=rename_meta.get("merge"))
+            rename_doc(doctype=doctype, old=rename_meta.get("old_name"), new=rename_meta.get("new_name"), merge=rename_meta.get("merge"), rebuild_search=rebuild_search)
             # local_doc.rename(name=rename_meta.get("new_name"),  merge=rename_meta.get("merge"))
     else:
         raise IncorrectData("Incorrect Data Passed")
