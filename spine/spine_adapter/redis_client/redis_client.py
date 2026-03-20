@@ -159,9 +159,20 @@ def start_workers(site, queue="kafka_events", type="json", quiet=False, **kargs)
     :param kargs: key value pairs used for configuration of workers. Following keys are used
     :return: None
     """
+    import time
+    INITIAL_BACKOFF = 5
+    MAX_BACKOFF = 300
+
     global logger
     logger = get_logger(__name__)
     processes = []
     logger.debug("Starting worker process.")
+    backoff = INITIAL_BACKOFF
     while True:
-        worker(site, queue, type, quiet)
+        try:
+            worker(site, queue, type, quiet)
+            backoff = INITIAL_BACKOFF
+        except Exception as e:
+            logger.error("Worker error: {}. Retrying in {} seconds.".format(e, backoff))
+            time.sleep(backoff)
+            backoff = min(backoff * 2, MAX_BACKOFF)

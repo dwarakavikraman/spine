@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from logging.handlers import RotatingFileHandler
 
 import click
@@ -12,6 +13,9 @@ default_log_level = logging.DEBUG
 LOG_FILENAME = '../logs/event_dispatcher.log'
 
 logger = None
+
+MAX_BACKOFF = 300  # 5 minutes
+INITIAL_BACKOFF = 5  # 5 seconds
 
 
 def get_logger(module):
@@ -35,15 +39,36 @@ def get_logger(module):
     return logger
 
 
+def _validate_site(site):
+    """Check if the site directory exists before attempting frappe.init."""
+    sites_dir = os.path.abspath(os.path.join(os.getcwd(), 'sites'))
+    site_path = os.path.join(sites_dir, site)
+    if not os.path.isdir(site_path):
+        raise FileNotFoundError("Site {} does not exist at {}".format(site, site_path))
+
+
 def start_dispatchers(site, queue="kafka_events", type="json", quiet=False, **kargs):
     global logger
     logger = get_logger(__name__)
     logger.debug("Starting worker process.")
+    backoff = INITIAL_BACKOFF
     while True:
-        dispatcher(site, queue, type, quiet, logger)
+        try:
+            dispatcher(site, queue, type, quiet, logger)
+            backoff = INITIAL_BACKOFF  # reset on successful run
+        except FileNotFoundError as e:
+            logger.error("Site validation failed: {}. Retrying in {} seconds.".format(e, backoff))
+            print("Site validation failed: {}. Retrying in {} seconds.".format(e, backoff))
+            time.sleep(backoff)
+            backoff = min(backoff * 2, MAX_BACKOFF)
+        except Exception as e:
+            logger.error("Dispatcher error: {}. Retrying in {} seconds.".format(e, backoff))
+            time.sleep(backoff)
+            backoff = min(backoff * 2, MAX_BACKOFF)
 
 
 def dispatcher(site, queue, type="json", quiet=False, log=None):
+    _validate_site(site)
     frappe.init(site=site)
     frappe_logger = frappe.logger(__name__, with_more_info=False)
     frappe_logger.info(
