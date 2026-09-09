@@ -7,7 +7,6 @@ import uuid
 from logging.handlers import RotatingFileHandler
 
 import redis
-from rq import Connection
 from rq.logutils import setup_loghandlers
 
 import frappe
@@ -138,10 +137,11 @@ def worker(site, queue, type="json", quiet=False, log=None):
         redis_connection = get_redis_conn()
         if os.environ.get('CI'):
             setup_loghandlers('ERROR')
-        with Connection(redis_connection):
-            logging_level = "INFO"
-            if quiet:
-                logging_level = "WARNING"
+        # SimpleQueue receives its Redis connection explicitly; no RQ context
+        # is needed (rq.Connection was removed in RQ 2).
+        logging_level = "INFO"
+        if quiet:
+            logging_level = "WARNING"
         q = get_redis_queue(queue)
         # if q.get_length() > 0:
         q.dequeue_and_execute(logging_level, log, site)
